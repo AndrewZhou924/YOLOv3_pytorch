@@ -206,11 +206,6 @@ def detect():
             f.write(info)
 
 
-
-
-
-
-
 if __name__ == '__main__':
     with torch.no_grad():
         detect()
