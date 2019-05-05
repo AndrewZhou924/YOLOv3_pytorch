@@ -131,7 +131,16 @@ def detect():
                 for *xyxy, conf, cls_conf, cls in plate_detections:
                     x = xyxy
                     temp_position = (int(x[0]), int(x[1]), int(x[2]), int(x[3]))
-                    plate_positions.append(temp_position)
+                    # plate_positions.append(temp_position)
+
+                    plate_x = (x[2] + x[0])/2  #水平中点
+                    plate_y = (x[3] + x[1])/2  #垂直中点
+
+
+                    # print(temp_position)
+                    print("platexy::",plate_x,plate_y)
+                    if (plate_y > 416*1/2 and plate_x > 416*1/3 and plate_x < 416*2/3):
+                        plate_positions.append(temp_position) 
                 
                 # just for test
                 # ===========================================================================

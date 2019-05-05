@@ -18,8 +18,8 @@ def detect():
     data_cfg_plate = 'data/transfer.data'
     weights_plate = 'weights/best.pt'
 
+    images = 'pingxiangjiaojing'
     # images = 'data/samples'
-    images = 'pingxiangjiaojing/'
     output='output'
     img_size=416
     conf_thres=0.5
@@ -31,7 +31,7 @@ def detect():
     device = torch_utils.select_device()
     if not os.path.exists(output):
         os.makedirs(output)
-        
+
     # if os.path.exists(output):
     #     shutil.rmtree(output)  # delete output folder
     # os.makedirs(output)  # make new output folder
@@ -63,7 +63,7 @@ def detect():
     for i, (path, img, im0, vid_cap) in tqdm(enumerate(dataloader)):
         # t = time.time()
         # save_path = str(Path(output) / Path(path).name)
-        # print("\n\n\n",Path(path).name.split('.')[0]+"\n\n\n\n")
+        # print("\n\n\n",Path(path).name+"\n\n\n\n")
 
         # Get detections
         img = torch.from_numpy(img).unsqueeze(0).to(device)
@@ -98,14 +98,17 @@ def detect():
 
                 # Add bbox to the image
                 # label = '%s %.2f' % (classes[int(cls)], conf)
+        else:
+            continue
 
         # 保存车牌相对于原图的坐标
         all_plates = []
         for position in car_positions:
             # print(im0.shape) #(2008, 3408, 3)
-            if position[3] > im0.shape[0] or position[2] > im0.shape[1]:
-                print("error in create each_car_img0!\n")
-                break
+            # if position[3] > im0.shape[0] or position[2] > im0.shape[1]:
+            #     print("error in create each_car_img0!\n")
+            #     break
+            # print(position)
 
             each_car_img0 = im0[position[1]:position[3],position[0]:position[2]]
             origin_shape = each_car_img0.shape
@@ -129,11 +132,17 @@ def detect():
             # print("\nplate_detections",plate_detections)
         
             plate_positions = []
+            # print("\ncar position:",position)
             if plate_detections is not None and len(plate_detections) > 0:
                 for *xyxy, conf, cls_conf, cls in plate_detections:
                     x = xyxy
                     temp_position = (int(x[0]), int(x[1]), int(x[2]), int(x[3]))
-                    plate_positions.append(temp_position)   
+
+                    plate_x = x[2] - x[0]
+                    plate_y = x[3] - x[1]
+
+                    if (plate_y > 416*1/2 and plate_x > 416*1/3 and plate_x < 416*2/3):
+                        plate_positions.append(temp_position) 
 
             # change the coordination
             if len(plate_positions) != 0:
@@ -162,16 +171,16 @@ def detect():
         # print(car_positions)
         total_info = ""
         for car in car_positions:
-            # print(car)
             info = "0"+"\t"+str(car[1])+"\t"+str(car[0])+"\t"+str((car[3]-car[1])/length)+"\t"+str((car[2]-car[0])/height)+"\n"
             total_info += info
             # print(info)
             # f.write(info)
 
-        for plate in all_plates:
-            info = "1"+"\t"+str(plate[1])+"\t"+str(plate[0])+"\t"+str((plate[3]-plate[1])/length)+"\t"+str((plate[2]-plate[0])/height)+"\n"
-            # print(info)
-            total_info += info
+        if len(all_plates) != 0:
+            for plate in all_plates:
+                info = "1"+"\t"+str(plate[1])+"\t"+str(plate[0])+"\t"+str((plate[3]-plate[1])/length)+"\t"+str((plate[2]-plate[0])/height)+"\n"
+                # print(info)
+                total_info += info
         f.write(total_info)
 
 
