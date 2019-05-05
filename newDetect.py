@@ -5,6 +5,7 @@ from models import *
 from utils.datasets import *
 from utils.utils import *
 from PIL import Image,ImageDraw  
+import os
 
 def detect():
     # car detect model config
@@ -57,6 +58,7 @@ def detect():
     for i, (path, img, im0, vid_cap) in enumerate(dataloader):
         t = time.time()
         save_path = str(Path(output) / Path(path).name)
+        # print("\n\n\n",Path(path).name.split('.')[0]+"\n\n\n\n")
 
         # Get detections
         img = torch.from_numpy(img).unsqueeze(0).to(device)
@@ -95,11 +97,6 @@ def detect():
 
                 # Add bbox to the image
                 label = '%s %.2f' % (classes[int(cls)], conf)
-
-        # print(car_positions)
-        # print('Done. (%.3fs)' % (time.time() - t))
-        car_positions.pop(-1)
-        car_positions.pop(-1)
 
         # 保存车牌相对于原图的坐标
         all_plates = []
@@ -156,37 +153,61 @@ def detect():
                  # ===========================================================================
 
             # change the coordination
-            # TODO:fix bug
             if len(plate_positions) != 0:
                 x_radio = origin_shape[0]/416
                 y_radio = origin_shape[1]/416
                 print("\n\n\n",x_radio,y_radio)
-                for position in plate_positions:
-                    new_position = (position[0]*x_radio+position[1], 
-                    position[1]*y_radio+position[0],
-                    position[2]*x_radio+position[1],
-                    position[3]*y_radio+position[0])
-                    all_plates.append(new_position)
 
-                    new_position = (position[0]*x_radio+position[0], 
-                    position[1]*y_radio+position[1],
-                    position[2]*x_radio+position[0],
-                    position[3]*y_radio+position[1])
+                for pos in plate_positions:
+                    new_position = (pos[0]*y_radio+position[0], 
+                    pos[1]*x_radio+position[1],
+                    pos[2]*y_radio+position[0],
+                    pos[3]*x_radio+position[1])
                     all_plates.append(new_position)
 
 
-        # print("\n\nall:",all_plates)
 
-        # TODO:fix bug
         originPic = Image.fromarray(im0)
         draw = ImageDraw.Draw(originPic)
         # print("originPic.shape",originPic.size)
 
+        # draw the plate  ==>OK
         for plate in all_plates:
             draw.rectangle(((plate[0],plate[1]),(plate[2],plate[3])), outline='red')
-            # draw.rectangle(((plate[1],plate[0]),(plate[3],plate[2])), outline='red')
+        #     # draw.rectangle(((plate[1],plate[0]),(plate[3],plate[2])), outline='red')
+
+        # draw the car  ==>OK
+        for car in car_positions:
+            draw.rectangle(((car[0],car[1]),(car[2],car[3])), outline='red')
 
         originPic.save("AllpicTest.jpg")
+
+        '''
+        save to txt
+        format : label x y w h
+        label(0 for car and 1 for plate)
+        '''
+        filePath = output + "/" + Path(path).name.split('.')[0] + ".txt"
+        f=open(filePath,"w")  
+        print(im0.shape)
+        length = im0.shape[0]
+        height = im0.shape[1]
+
+        # print(car_positions)
+        for car in car_positions:
+            # print(car)
+            info = "0"+"\t"+str(car[1])+"\t"+str(car[0])+"\t"+str((car[3]-car[1])/length)+"\t"+str((car[2]-car[0])/height)+"\n"
+            # print(info)
+            f.write(info)
+
+        for plate in all_plates:
+            info = "1"+"\t"+str(plate[1])+"\t"+str(plate[0])+"\t"+str((plate[3]-plate[1])/length)+"\t"+str((plate[2]-plate[0])/height)+"\n"
+            # print(info)
+            f.write(info)
+
+
+
+
 
 
 
